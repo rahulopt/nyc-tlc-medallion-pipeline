@@ -1,0 +1,39 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# macOS
+.DS_Store
+
+# Logs
+logs/*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Environment Variables
+.env
+config/*.env
+
+# AWS
+.aws/
+
+# Terraform (future)
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# PySpark
+.metastore_db/
+
+# Temporary
+tmp/
+temp/
