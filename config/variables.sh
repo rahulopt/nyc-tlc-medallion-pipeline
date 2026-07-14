@@ -117,7 +117,9 @@ STATE_MACHINE_NAME="${PROJECT_NAME}-${ENVIRONMENT}-pipeline"
 
 ##########################################
 # SES Email Notifications
+# NOTE: Set real values as Lambda env vars
+# Do NOT commit real emails to git
 ##########################################
 
-SENDER_EMAIL="your-verified-sender@gmail.com"     # SES mein verify karo
-RECIPIENT_EMAIL="your-email@gmail.com"             # jahan alert aaye
+SENDER_EMAIL="REPLACE_WITH_VERIFIED_SES_EMAIL"
+RECIPIENT_EMAIL="REPLACE_WITH_RECIPIENT_EMAIL"
