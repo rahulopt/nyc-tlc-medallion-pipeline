@@ -1,17 +1,17 @@
 {
-  "Comment": "NYC TLC Medallion Pipeline — Bronze → Silver → Gold → Crawlers → Audit → Notify",
+  "Comment": "NYC TLC Medallion Pipeline — Bronze → Silver → Gold → Audit → Notify",
   "StartAt": "Start Bronze Job",
 
   "States": {
 
     "Start Bronze Job": {
       "Type": "Task",
-      "Resource": "arn:aws:states:::glue:startJobRun.sync:2",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
       "Parameters": {
         "JobName": "nyc-tlc-bronze-job-dev"
       },
       "ResultPath": "$.bronzeResult",
-      "Next": "Bronze Succeeded?",
+      "Next": "Start Silver Job",
       "Catch": [
         {
           "ErrorEquals": ["States.ALL"],
@@ -19,28 +19,16 @@
           "Next": "Notify Failure"
         }
       ]
-    },
-
-    "Bronze Succeeded?": {
-      "Type": "Choice",
-      "Choices": [
-        {
-          "Variable": "$.bronzeResult.JobRunState",
-          "StringEquals": "SUCCEEDED",
-          "Next": "Start Silver Job"
-        }
-      ],
-      "Default": "Notify Failure"
     },
 
     "Start Silver Job": {
       "Type": "Task",
-      "Resource": "arn:aws:states:::glue:startJobRun.sync:2",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
       "Parameters": {
         "JobName": "nyc-tlc-silver-job-dev"
       },
       "ResultPath": "$.silverResult",
-      "Next": "Silver Succeeded?",
+      "Next": "Start Gold Job",
       "Catch": [
         {
           "ErrorEquals": ["States.ALL"],
@@ -48,73 +36,15 @@
           "Next": "Notify Failure"
         }
       ]
-    },
-
-    "Silver Succeeded?": {
-      "Type": "Choice",
-      "Choices": [
-        {
-          "Variable": "$.silverResult.JobRunState",
-          "StringEquals": "SUCCEEDED",
-          "Next": "Start Gold Job"
-        }
-      ],
-      "Default": "Notify Failure"
     },
 
     "Start Gold Job": {
       "Type": "Task",
-      "Resource": "arn:aws:states:::glue:startJobRun.sync:2",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
       "Parameters": {
         "JobName": "nyc-tlc-gold-job-dev"
       },
       "ResultPath": "$.goldResult",
-      "Next": "Gold Succeeded?",
-      "Catch": [
-        {
-          "ErrorEquals": ["States.ALL"],
-          "ResultPath": "$.error",
-          "Next": "Notify Failure"
-        }
-      ]
-    },
-
-    "Gold Succeeded?": {
-      "Type": "Choice",
-      "Choices": [
-        {
-          "Variable": "$.goldResult.JobRunState",
-          "StringEquals": "SUCCEEDED",
-          "Next": "Run Silver Crawler"
-        }
-      ],
-      "Default": "Notify Failure"
-    },
-
-    "Run Silver Crawler": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::glue:startCrawler.sync:2",
-      "Parameters": {
-        "Name": "nyc-tlc-dev-silver-crawler"
-      },
-      "ResultPath": "$.silverCrawlerResult",
-      "Next": "Run Gold Crawler",
-      "Catch": [
-        {
-          "ErrorEquals": ["States.ALL"],
-          "ResultPath": "$.error",
-          "Next": "Notify Failure"
-        }
-      ]
-    },
-
-    "Run Gold Crawler": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::glue:startCrawler.sync:2",
-      "Parameters": {
-        "Name": "nyc-tlc-dev-gold-crawler"
-      },
-      "ResultPath": "$.goldCrawlerResult",
       "Next": "Log Audit Success",
       "Catch": [
         {
@@ -167,7 +97,7 @@
             "jobName": "nyc-tlc-medallion-pipeline",
             "state": "SUCCEEDED",
             "jobRunId.$": "$$.Execution.Name",
-            "message": "✅ NYC TLC Pipeline completed successfully — Bronze → Silver → Gold → Catalog updated"
+            "message": "NYC TLC Pipeline completed — Bronze → Silver → Gold done"
           }
         }
       },
@@ -194,7 +124,7 @@
             "jobName": "nyc-tlc-medallion-pipeline",
             "state": "FAILED",
             "jobRunId.$": "$$.Execution.Name",
-            "message.$": "States.Format('❌ NYC TLC Pipeline FAILED — Error: {}', States.JsonToString($.error))"
+            "message": "NYC TLC Pipeline FAILED — check CloudWatch logs"
           }
         }
       },
@@ -224,7 +154,7 @@
             "jobRunId.$": "$$.Execution.Name",
             "startedOn.$": "$$.Execution.StartTime",
             "completedOn.$": "$$.State.EnteredTime",
-            "message.$": "States.Format('Pipeline failed — {}', States.JsonToString($.error))"
+            "message": "Pipeline failed"
           }
         }
       },
@@ -241,13 +171,13 @@
 
     "Pipeline Succeeded": {
       "Type": "Succeed",
-      "Comment": "All stages completed — Bronze → Silver → Gold → Catalog → Audit → Notified"
+      "Comment": "All stages completed — Bronze → Silver → Gold → Audit → Notified"
     },
 
     "Pipeline Failed": {
       "Type": "Fail",
       "Error": "PipelineFailure",
-      "Cause": "One or more pipeline stages failed. Check CloudWatch logs for details."
+      "Cause": "One or more pipeline stages failed. Check CloudWatch logs."
     }
 
   }
