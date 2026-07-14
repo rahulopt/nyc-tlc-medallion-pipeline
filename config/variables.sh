@@ -47,10 +47,13 @@ GLUE_DATABASE="${PROJECT_NAME}_${ENVIRONMENT}_db"
 AUDIT_TABLE="${PROJECT_NAME}_${ENVIRONMENT}_audit"
 
 ##########################################
-# SNS
+# EventBridge
 ##########################################
 
-SNS_TOPIC="${PROJECT_NAME}-${ENVIRONMENT}-notifications"
+EVENT_BUS_NAME="${PROJECT_NAME}-${ENVIRONMENT}-event-bus"
+EVENT_RULE_SUCCESS="${PROJECT_NAME}-${ENVIRONMENT}-glue-success-rule"
+EVENT_RULE_FAILURE="${PROJECT_NAME}-${ENVIRONMENT}-glue-failure-rule"
+EVENT_RULE_COMPLETE="${PROJECT_NAME}-${ENVIRONMENT}-pipeline-complete-rule"
 
 ##########################################
 # IAM Roles

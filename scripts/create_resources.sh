@@ -10,6 +10,7 @@ source scripts/lib/utils.sh
 source scripts/lib/aws_s3.sh
 source scripts/lib/aws_iam.sh
 source scripts/lib/aws_glue.sh
+source scripts/lib/aws_eventbridge.sh
 
 
 # BUG FIX #2: Removed duplicate "source config/variables.sh"
@@ -199,6 +200,23 @@ main() {
     "$GLUE_ROLE"
 
     log_success "Gold Glue Job Setup Completed"
+
+
+    #############################################################
+    # EventBridge — Event Bus & Rules
+    #############################################################
+
+    log_info "Setting up EventBridge"
+
+    # Create custom event bus
+    create_event_bus "$EVENT_BUS_NAME"
+
+    # Create rules
+    create_success_rule  "$EVENT_RULE_SUCCESS"  "$EVENT_BUS_NAME"
+    create_failure_rule  "$EVENT_RULE_FAILURE"  "$EVENT_BUS_NAME"
+    create_complete_rule "$EVENT_RULE_COMPLETE" "$EVENT_BUS_NAME"
+
+    log_success "EventBridge Setup Completed"
 
 
     # BUG FIX #1: Moved completion message to the actual END of main()
