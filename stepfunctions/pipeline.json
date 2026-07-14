@@ -1,5 +1,5 @@
 {
-  "Comment": "NYC TLC Medallion Pipeline — Bronze → Silver → Gold → Crawler",
+  "Comment": "NYC TLC Medallion Pipeline — Bronze → Silver → Gold → Crawlers → Audit → Notify",
   "StartAt": "Start Bronze Job",
 
   "States": {
@@ -16,7 +16,7 @@
         {
           "ErrorEquals": ["States.ALL"],
           "ResultPath": "$.error",
-          "Next": "Pipeline Failed"
+          "Next": "Notify Failure"
         }
       ]
     },
@@ -30,7 +30,7 @@
           "Next": "Start Silver Job"
         }
       ],
-      "Default": "Pipeline Failed"
+      "Default": "Notify Failure"
     },
 
     "Start Silver Job": {
@@ -45,7 +45,7 @@
         {
           "ErrorEquals": ["States.ALL"],
           "ResultPath": "$.error",
-          "Next": "Pipeline Failed"
+          "Next": "Notify Failure"
         }
       ]
     },
@@ -59,7 +59,7 @@
           "Next": "Start Gold Job"
         }
       ],
-      "Default": "Pipeline Failed"
+      "Default": "Notify Failure"
     },
 
     "Start Gold Job": {
@@ -74,7 +74,7 @@
         {
           "ErrorEquals": ["States.ALL"],
           "ResultPath": "$.error",
-          "Next": "Pipeline Failed"
+          "Next": "Notify Failure"
         }
       ]
     },
@@ -88,7 +88,7 @@
           "Next": "Run Silver Crawler"
         }
       ],
-      "Default": "Pipeline Failed"
+      "Default": "Notify Failure"
     },
 
     "Run Silver Crawler": {
@@ -103,7 +103,7 @@
         {
           "ErrorEquals": ["States.ALL"],
           "ResultPath": "$.error",
-          "Next": "Pipeline Failed"
+          "Next": "Notify Failure"
         }
       ]
     },
@@ -115,7 +115,121 @@
         "Name": "nyc-tlc-dev-gold-crawler"
       },
       "ResultPath": "$.goldCrawlerResult",
+      "Next": "Log Audit Success",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "Notify Failure"
+        }
+      ]
+    },
+
+    "Log Audit Success": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:us-east-1:519749210589:function:nyc-tlc-audit-logger",
+        "Payload": {
+          "source": "aws.stepfunctions",
+          "detail-type": "Pipeline Execution Success",
+          "time.$": "$$.Execution.StartTime",
+          "detail": {
+            "jobName": "nyc-tlc-medallion-pipeline",
+            "state": "SUCCEEDED",
+            "jobRunId.$": "$$.Execution.Name",
+            "startedOn.$": "$$.Execution.StartTime",
+            "completedOn.$": "$$.State.EnteredTime",
+            "message": "All pipeline stages completed successfully"
+          }
+        }
+      },
+      "ResultPath": "$.auditResult",
+      "Next": "Notify Success",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "Notify Success"
+        }
+      ]
+    },
+
+    "Notify Success": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:us-east-1:519749210589:function:nyc-tlc-notifier",
+        "Payload": {
+          "source": "aws.stepfunctions",
+          "detail-type": "Pipeline Notification",
+          "detail": {
+            "jobName": "nyc-tlc-medallion-pipeline",
+            "state": "SUCCEEDED",
+            "jobRunId.$": "$$.Execution.Name",
+            "message": "✅ NYC TLC Pipeline completed successfully — Bronze → Silver → Gold → Catalog updated"
+          }
+        }
+      },
+      "ResultPath": "$.notifyResult",
       "Next": "Pipeline Succeeded",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "Pipeline Succeeded"
+        }
+      ]
+    },
+
+    "Notify Failure": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:us-east-1:519749210589:function:nyc-tlc-notifier",
+        "Payload": {
+          "source": "aws.stepfunctions",
+          "detail-type": "Pipeline Notification",
+          "detail": {
+            "jobName": "nyc-tlc-medallion-pipeline",
+            "state": "FAILED",
+            "jobRunId.$": "$$.Execution.Name",
+            "message.$": "States.Format('❌ NYC TLC Pipeline FAILED — Error: {}', States.JsonToString($.error))"
+          }
+        }
+      },
+      "ResultPath": "$.notifyResult",
+      "Next": "Log Audit Failure",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "Pipeline Failed"
+        }
+      ]
+    },
+
+    "Log Audit Failure": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:us-east-1:519749210589:function:nyc-tlc-audit-logger",
+        "Payload": {
+          "source": "aws.stepfunctions",
+          "detail-type": "Pipeline Execution Failure",
+          "time.$": "$$.Execution.StartTime",
+          "detail": {
+            "jobName": "nyc-tlc-medallion-pipeline",
+            "state": "FAILED",
+            "jobRunId.$": "$$.Execution.Name",
+            "startedOn.$": "$$.Execution.StartTime",
+            "completedOn.$": "$$.State.EnteredTime",
+            "message.$": "States.Format('Pipeline failed — {}', States.JsonToString($.error))"
+          }
+        }
+      },
+      "ResultPath": "$.auditResult",
+      "Next": "Pipeline Failed",
       "Catch": [
         {
           "ErrorEquals": ["States.ALL"],
@@ -127,13 +241,13 @@
 
     "Pipeline Succeeded": {
       "Type": "Succeed",
-      "Comment": "All stages completed — Bronze → Silver → Gold → Catalog updated"
+      "Comment": "All stages completed — Bronze → Silver → Gold → Catalog → Audit → Notified"
     },
 
     "Pipeline Failed": {
       "Type": "Fail",
       "Error": "PipelineFailure",
-      "Cause": "One or more pipeline stages failed. Check EventBridge + CloudWatch logs."
+      "Cause": "One or more pipeline stages failed. Check CloudWatch logs for details."
     }
 
   }
