@@ -1,0 +1,5 @@
+# AWS SDK
+boto3==1.38.34
+
+# HTTP requests (for downloading NYC TLC data)
+requests==2.32.3

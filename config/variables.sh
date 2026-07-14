@@ -68,8 +68,31 @@ STEP_FUNCTION_ROLE="${PROJECT_NAME}-StepFunctionExecutionRole"
 CRAWLER_NAME="${PROJECT_NAME}-${ENVIRONMENT}-raw-crawler"
 
 CRAWLER_ROLE="${GLUE_ROLE}"
+
+############################################
+# Glue Job - Bronze
+############################################
+GLUE_JOB_NAME="nyc-tlc-bronze-job-dev"
+GLUE_VERSION="5.0"
+WORKER_TYPE="G.1X"
+NUMBER_OF_WORKERS="2"
+SCRIPT_LOCATION="s3://$ASSETS_BUCKET/glue/bronze/bronze_job.py"
+
+############################################
+# Glue Job - Silver
+############################################
+SILVER_JOB_NAME="nyc-tlc-silver-job-dev"
+SILVER_SCRIPT_LOCATION="s3://$ASSETS_BUCKET/glue/silver/silver_job.py"
+BRONZE_PATH="s3://$CURATED_BUCKET/bronze"
+SILVER_PATH="s3://$CURATED_BUCKET/silver"
+REJECT_PATH="s3://$REJECT_BUCKET/silver"
 ##########################################
 # Logging
 ##########################################
+############################################
+##########################################
+# IAM Policy
+##########################################
 
+GLUE_S3_POLICY_NAME="nyc-tlc-glue-s3-policy"
 LOG_FILE="logs/deployment.log"

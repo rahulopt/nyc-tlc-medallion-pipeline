@@ -1,7 +1,8 @@
 import os
 import boto3
 import requests
-from datetime import datetime
+
+# BUG FIX #6: Removed unused 'from datetime import datetime' import
 
 
 # ==========================
@@ -12,8 +13,10 @@ AWS_REGION = "us-east-1"
 
 BUCKET_NAME = os.environ["RAW_BUCKET"]
 
-YEAR = "2024"
-MONTH = "01"
+# BUG FIX #5: YEAR and MONTH ab hardcoded nahi hain
+# env vars se read ho rahe hain, with sensible defaults (2024-01)
+YEAR = os.environ.get("YEAR", "2024")
+MONTH = os.environ.get("MONTH", "01")
 
 DATA_URL = (
     f"https://d37ci6vzurychx.cloudfront.net/trip-data/"

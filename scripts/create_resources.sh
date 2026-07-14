@@ -12,6 +12,9 @@ source scripts/lib/aws_iam.sh
 source scripts/lib/aws_glue.sh
 
 
+# BUG FIX #2: Removed duplicate "source config/variables.sh"
+# (was sourced twice — once at top, once after lib imports)
+
 
 main() {
 
@@ -81,13 +84,11 @@ main() {
     create_role "$STEP_FUNCTION_ROLE" "$STEPFUNCTION_TRUST_POLICY"
 
 
-
     log_success "IAM Roles Created"
 
-
-    log_success "Infrastructure Deployment Completed"
-
-       log_success "IAM Roles Created"
+    # BUG FIX #1: Removed duplicate "IAM Roles Created" log
+    # BUG FIX #1: Removed premature "Infrastructure Deployment Completed" message
+    # (it was appearing BEFORE policies, Glue DB, Crawler, and Job were created)
 
 
     #############################################################
@@ -115,11 +116,24 @@ main() {
     "arn:aws:iam::aws:policy/AWSStepFunctionsFullAccess"
 
 
+    ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
+    sed "s/__ACCOUNT_ID__/$ACCOUNT_ID/g" \
+    iam/policies/glue-s3-policy.json \
+    > /tmp/glue-s3-policy.json
+
+    create_policy \
+    "$GLUE_S3_POLICY_NAME" \
+    "/tmp/glue-s3-policy.json"
+
+    attach_custom_policy \
+    "$GLUE_ROLE" \
+    "$GLUE_S3_POLICY_NAME"
+
+    # BUG FIX #3: Changed log_info -> log_success for policy attachment completion
+    # BUG FIX #3: Removed duplicate "IAM Policies Attached" log_success before attach_custom_policy
     log_success "IAM Policies Attached"
 
-
-    log_success "Infrastructure Deployment Completed"
 
     #############################################################
     # Glue Database
@@ -148,6 +162,34 @@ main() {
 
     log_success "Glue Crawler Setup Completed"
 
+    #############################################################
+    # Glue Job - Bronze
+    #############################################################
+
+    log_info "Creating Bronze Glue Job"
+
+    create_glue_job \
+    "$GLUE_JOB_NAME" \
+    "$GLUE_ROLE"
+
+    log_success "Bronze Glue Job Setup Completed"
+
+
+    #############################################################
+    # Glue Job - Silver
+    #############################################################
+
+    log_info "Creating Silver Glue Job"
+
+    create_silver_glue_job \
+    "$SILVER_JOB_NAME" \
+    "$GLUE_ROLE"
+
+    log_success "Silver Glue Job Setup Completed"
+
+
+    # BUG FIX #1: Moved completion message to the actual END of main()
+    log_success "Infrastructure Deployment Completed"
 
 }
 main
