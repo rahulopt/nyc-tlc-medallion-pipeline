@@ -188,6 +188,19 @@ main() {
     log_success "Silver Glue Job Setup Completed"
 
 
+    #############################################################
+    # Glue Job - Gold
+    #############################################################
+
+    log_info "Creating Gold Glue Job"
+
+    create_gold_glue_job \
+    "$GOLD_JOB_NAME" \
+    "$GLUE_ROLE"
+
+    log_success "Gold Glue Job Setup Completed"
+
+
     # BUG FIX #1: Moved completion message to the actual END of main()
     log_success "Infrastructure Deployment Completed"
 

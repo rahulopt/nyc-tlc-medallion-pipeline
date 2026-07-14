@@ -86,6 +86,13 @@ SILVER_SCRIPT_LOCATION="s3://$ASSETS_BUCKET/glue/silver/silver_job.py"
 BRONZE_PATH="s3://$CURATED_BUCKET/bronze"
 SILVER_PATH="s3://$CURATED_BUCKET/silver"
 REJECT_PATH="s3://$REJECT_BUCKET/silver"
+
+############################################
+# Glue Job - Gold
+############################################
+GOLD_JOB_NAME="nyc-tlc-gold-job-dev"
+GOLD_SCRIPT_LOCATION="s3://$ASSETS_BUCKET/glue/gold/gold_job.py"
+GOLD_PATH="s3://$GOLD_BUCKET/gold"
 ##########################################
 # Logging
 ##########################################

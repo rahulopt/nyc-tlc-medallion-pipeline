@@ -161,6 +161,10 @@ create_glue_job() {
 # Create Glue Job - Silver
 #############################################################
 
+#############################################################
+# Create Glue Job - Silver
+#############################################################
+
 create_silver_glue_job() {
 
     local job_name="$1"
@@ -197,3 +201,43 @@ create_silver_glue_job() {
 
 }
 
+
+
+#############################################################
+# Create Glue Job - Gold
+#############################################################
+
+create_gold_glue_job() {
+
+    local job_name="$1"
+    local role_name="$2"
+
+    if glue_job_exists "$job_name"
+    then
+        log_warning "Glue Job already exists : $job_name"
+        return
+    fi
+
+    log_info "Creating Gold Glue Job : $job_name"
+
+    aws glue create-job \
+        --name "$job_name" \
+        --role "$role_name" \
+        --command Name=glueetl,ScriptLocation="$GOLD_SCRIPT_LOCATION",PythonVersion=3 \
+        --glue-version "$GLUE_VERSION" \
+        --worker-type "$WORKER_TYPE" \
+        --number-of-workers "$NUMBER_OF_WORKERS" \
+        --default-arguments '{
+            "--job-language":"python",
+            "--SILVER_PATH":"'"$SILVER_PATH"'",
+            "--GOLD_PATH":"'"$GOLD_PATH"'"
+        }'
+
+    if [ $? -ne 0 ]
+    then
+        exit_on_error "Failed creating Gold Glue Job"
+    fi
+
+    log_success "Gold Glue Job created : $job_name"
+
+}
