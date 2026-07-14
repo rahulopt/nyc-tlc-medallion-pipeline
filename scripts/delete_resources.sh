@@ -30,15 +30,69 @@ main() {
 
 
     #############################################################
-    # Step Functions
+    # Stop Running Step Functions Executions
     #############################################################
 
-    log_info "Deleting Step Functions State Machine"
+    log_info "Stopping running Step Functions executions"
 
     SF_ARN=$(aws stepfunctions list-state-machines \
         --region "$AWS_REGION" \
         --query "stateMachines[?name=='$STATE_MACHINE_NAME'].stateMachineArn" \
         --output text 2>/dev/null || echo "")
+
+    if [ -n "$SF_ARN" ]; then
+
+        RUNNING_EXECUTIONS=$(aws stepfunctions list-executions \
+            --state-machine-arn "$SF_ARN" \
+            --status-filter "RUNNING" \
+            --region "$AWS_REGION" \
+            --query 'executions[*].executionArn' \
+            --output text 2>/dev/null || echo "")
+
+        for EXEC_ARN in $RUNNING_EXECUTIONS; do
+            log_info "Aborting execution: $EXEC_ARN"
+            aws stepfunctions stop-execution \
+                --execution-arn "$EXEC_ARN" \
+                --region "$AWS_REGION" \
+                >/dev/null 2>&1 || true
+            log_success "Execution aborted"
+        done
+
+    fi
+
+
+    #############################################################
+    # Stop Running Glue Jobs
+    #############################################################
+
+    log_info "Stopping running Glue jobs"
+
+    for JOB in "$GLUE_JOB_NAME" "$SILVER_JOB_NAME" "$GOLD_JOB_NAME"; do
+
+        RUNNING_RUN_ID=$(aws glue get-job-runs \
+            --job-name "$JOB" \
+            --region "$AWS_REGION" \
+            --query "JobRuns[?JobRunState=='RUNNING'].Id | [0]" \
+            --output text 2>/dev/null || echo "")
+
+        if [ -n "$RUNNING_RUN_ID" ] && [ "$RUNNING_RUN_ID" != "None" ]; then
+            log_info "Stopping job run: $JOB ($RUNNING_RUN_ID)"
+            aws glue batch-stop-job-run \
+                --job-name "$JOB" \
+                --job-run-ids "$RUNNING_RUN_ID" \
+                --region "$AWS_REGION" \
+                >/dev/null 2>&1 || true
+            log_success "Job stopped: $JOB"
+        fi
+
+    done
+
+
+    #############################################################
+    # Step Functions — Delete State Machine
+    #############################################################
+
+    log_info "Deleting Step Functions State Machine"
 
     if [ -n "$SF_ARN" ]; then
         aws stepfunctions delete-state-machine \
@@ -175,7 +229,21 @@ main() {
 
     for ROLE in "$GLUE_ROLE" "$LAMBDA_ROLE" "$STEP_FUNCTION_ROLE"; do
 
-        # Detach all attached policies
+        # Delete inline policies first
+        INLINE_POLICIES=$(aws iam list-role-policies \
+            --role-name "$ROLE" \
+            --query 'PolicyNames[*]' \
+            --output text 2>/dev/null || echo "")
+
+        for INLINE_POLICY in $INLINE_POLICIES; do
+            aws iam delete-role-policy \
+                --role-name "$ROLE" \
+                --policy-name "$INLINE_POLICY" \
+                >/dev/null 2>&1 || true
+            log_success "Inline policy deleted: $INLINE_POLICY from $ROLE"
+        done
+
+        # Detach all managed policies
         POLICIES=$(aws iam list-attached-role-policies \
             --role-name "$ROLE" \
             --query 'AttachedPolicies[*].PolicyArn' \
@@ -197,7 +265,7 @@ main() {
 
     done
 
-    # Delete custom policy
+    # Delete custom managed policy
     ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
     POLICY_ARN="arn:aws:iam::${ACCOUNT_ID}:policy/${GLUE_S3_POLICY_NAME}"
 
