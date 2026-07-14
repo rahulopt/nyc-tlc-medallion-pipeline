@@ -114,3 +114,10 @@ LOG_FILE="logs/deployment.log"
 ##########################################
 
 STATE_MACHINE_NAME="${PROJECT_NAME}-${ENVIRONMENT}-pipeline"
+
+##########################################
+# SES Email Notifications
+##########################################
+
+SENDER_EMAIL="your-verified-sender@gmail.com"     # SES mein verify karo
+RECIPIENT_EMAIL="your-email@gmail.com"             # jahan alert aaye
