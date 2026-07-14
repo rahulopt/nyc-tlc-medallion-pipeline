@@ -182,6 +182,8 @@ See [docs/deployment.md](docs/deployment.md) for the complete deployment guide.
 
 ## 📊 Step Functions Pipeline Flow
 
+![Step Functions Workflow](docs/screenshots/stepfunctions_pipeline.png)
+
 ```
 Start Bronze Job
       │✅
@@ -189,10 +191,6 @@ Start Silver Job
       │✅
 Start Gold Job
       │✅
-Run Silver Crawler
-      │
-Run Gold Crawler
-      │
 Log Audit (DynamoDB)
       │
 Notify Success (SES Email) ✅
