@@ -12,6 +12,7 @@ source scripts/lib/aws_iam.sh
 source scripts/lib/aws_glue.sh
 source scripts/lib/aws_eventbridge.sh
 source scripts/lib/aws_dynamodb.sh
+source scripts/lib/aws_stepfunctions.sh
 
 
 # BUG FIX #2: Removed duplicate "source config/variables.sh"
@@ -231,6 +232,20 @@ main() {
     create_complete_rule "$EVENT_RULE_COMPLETE" "$EVENT_BUS_NAME"
 
     log_success "EventBridge Setup Completed"
+
+
+    #############################################################
+    # Step Functions — Pipeline State Machine
+    #############################################################
+
+    log_info "Creating Step Functions State Machine"
+
+    create_state_machine \
+        "$STATE_MACHINE_NAME" \
+        "$STEP_FUNCTION_ROLE" \
+        "stepfunctions/pipeline.json"
+
+    log_success "Step Functions Setup Completed"
 
 
     # BUG FIX #1: Moved completion message to the actual END of main()

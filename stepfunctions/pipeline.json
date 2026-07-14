@@ -1,0 +1,140 @@
+{
+  "Comment": "NYC TLC Medallion Pipeline — Bronze → Silver → Gold → Crawler",
+  "StartAt": "Start Bronze Job",
+
+  "States": {
+
+    "Start Bronze Job": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync:2",
+      "Parameters": {
+        "JobName": "nyc-tlc-bronze-job-dev"
+      },
+      "ResultPath": "$.bronzeResult",
+      "Next": "Bronze Succeeded?",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "Pipeline Failed"
+        }
+      ]
+    },
+
+    "Bronze Succeeded?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.bronzeResult.JobRunState",
+          "StringEquals": "SUCCEEDED",
+          "Next": "Start Silver Job"
+        }
+      ],
+      "Default": "Pipeline Failed"
+    },
+
+    "Start Silver Job": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync:2",
+      "Parameters": {
+        "JobName": "nyc-tlc-silver-job-dev"
+      },
+      "ResultPath": "$.silverResult",
+      "Next": "Silver Succeeded?",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "Pipeline Failed"
+        }
+      ]
+    },
+
+    "Silver Succeeded?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.silverResult.JobRunState",
+          "StringEquals": "SUCCEEDED",
+          "Next": "Start Gold Job"
+        }
+      ],
+      "Default": "Pipeline Failed"
+    },
+
+    "Start Gold Job": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync:2",
+      "Parameters": {
+        "JobName": "nyc-tlc-gold-job-dev"
+      },
+      "ResultPath": "$.goldResult",
+      "Next": "Gold Succeeded?",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "Pipeline Failed"
+        }
+      ]
+    },
+
+    "Gold Succeeded?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.goldResult.JobRunState",
+          "StringEquals": "SUCCEEDED",
+          "Next": "Run Silver Crawler"
+        }
+      ],
+      "Default": "Pipeline Failed"
+    },
+
+    "Run Silver Crawler": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startCrawler.sync:2",
+      "Parameters": {
+        "Name": "nyc-tlc-dev-silver-crawler"
+      },
+      "ResultPath": "$.silverCrawlerResult",
+      "Next": "Run Gold Crawler",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "Pipeline Failed"
+        }
+      ]
+    },
+
+    "Run Gold Crawler": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startCrawler.sync:2",
+      "Parameters": {
+        "Name": "nyc-tlc-dev-gold-crawler"
+      },
+      "ResultPath": "$.goldCrawlerResult",
+      "Next": "Pipeline Succeeded",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "Pipeline Failed"
+        }
+      ]
+    },
+
+    "Pipeline Succeeded": {
+      "Type": "Succeed",
+      "Comment": "All stages completed — Bronze → Silver → Gold → Catalog updated"
+    },
+
+    "Pipeline Failed": {
+      "Type": "Fail",
+      "Error": "PipelineFailure",
+      "Cause": "One or more pipeline stages failed. Check EventBridge + CloudWatch logs."
+    }
+
+  }
+}

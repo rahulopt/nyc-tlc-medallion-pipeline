@@ -108,3 +108,9 @@ GOLD_PATH="s3://$GOLD_BUCKET/gold"
 
 GLUE_S3_POLICY_NAME="nyc-tlc-glue-s3-policy"
 LOG_FILE="logs/deployment.log"
+
+##########################################
+# Step Functions
+##########################################
+
+STATE_MACHINE_NAME="${PROJECT_NAME}-${ENVIRONMENT}-pipeline"
