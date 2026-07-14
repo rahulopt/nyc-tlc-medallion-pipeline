@@ -66,8 +66,10 @@ STEP_FUNCTION_ROLE="${PROJECT_NAME}-StepFunctionExecutionRole"
 ##########################################
 
 CRAWLER_NAME="${PROJECT_NAME}-${ENVIRONMENT}-raw-crawler"
-
 CRAWLER_ROLE="${GLUE_ROLE}"
+
+SILVER_CRAWLER_NAME="${PROJECT_NAME}-${ENVIRONMENT}-silver-crawler"
+GOLD_CRAWLER_NAME="${PROJECT_NAME}-${ENVIRONMENT}-gold-crawler"
 
 ############################################
 # Glue Job - Bronze
