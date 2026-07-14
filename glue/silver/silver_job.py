@@ -15,7 +15,8 @@ from pyspark.sql.functions import (
     dayofweek,
     round as spark_round,
     lit,
-    when
+    when,
+    unix_timestamp
 )
 from pyspark.sql.types import (
     DoubleType,
@@ -174,8 +175,8 @@ def apply_transformations(df):
             "trip_duration_minutes",
             spark_round(
                 (
-                    col("tpep_dropoff_datetime").cast("long") -
-                    col("tpep_pickup_datetime").cast("long")
+                    unix_timestamp(col("tpep_dropoff_datetime")) -
+                    unix_timestamp(col("tpep_pickup_datetime"))
                 ) / 60.0,
                 2
             )
