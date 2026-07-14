@@ -37,3 +37,8 @@ config/*.env
 # Temporary
 tmp/
 temp/
+
+# Large data files — download locally via ingestion/download_data.py
+*.parquet
+*.csv
+*.json.gz
