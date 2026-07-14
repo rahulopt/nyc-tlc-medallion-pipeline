@@ -11,6 +11,7 @@ source scripts/lib/aws_s3.sh
 source scripts/lib/aws_iam.sh
 source scripts/lib/aws_glue.sh
 source scripts/lib/aws_eventbridge.sh
+source scripts/lib/aws_dynamodb.sh
 
 
 # BUG FIX #2: Removed duplicate "source config/variables.sh"
@@ -200,6 +201,19 @@ main() {
     "$GLUE_ROLE"
 
     log_success "Gold Glue Job Setup Completed"
+
+
+    #############################################################
+    # DynamoDB — Audit Table
+    #############################################################
+
+    log_info "Creating DynamoDB Audit Table"
+
+    create_audit_table "$AUDIT_TABLE"
+
+    enable_ttl "$AUDIT_TABLE"
+
+    log_success "DynamoDB Setup Completed"
 
 
     #############################################################
